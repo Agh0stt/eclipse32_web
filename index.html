@@ -1,0 +1,1772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eclipse32 — A 32-bit OS Built From Scratch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --white: #ffffff;
+    --off: #f7f7f5;
+    --stone: #eeede9;
+    --muted: #9e9c96;
+    --ink: #1c1b18;
+    --ink2: #3d3c38;
+    --accent: #2a5cff;
+    --accent-soft: #e8edff;
+    --mono: 'DM Mono', monospace;
+    --serif: 'DM Serif Display', serif;
+    --sans: 'Instrument Sans', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--white);
+    color: var(--ink);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--stone);
+    padding: 0 2rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .nav-logo {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nav-logo span {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+  nav ul {
+    list-style: none;
+    display: flex;
+    gap: 2rem;
+  }
+  nav a {
+    font-size: 14px;
+    color: var(--ink2);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.15s;
+  }
+  nav a:hover { color: var(--accent); }
+
+  /* HERO */
+  .hero {
+    min-height: 90vh;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 6rem 2rem 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 50% at 50% 0%, #e8edff 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 100px;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(42,92,255,0.2);
+  }
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: clamp(3rem, 8vw, 6.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 0.5rem;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .hero-sub {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.02em;
+  }
+  .hero p {
+    max-width: 520px;
+    margin: 0 auto 2.5rem;
+    font-size: 18px;
+    color: var(--ink2);
+    line-height: 1.65;
+  }
+  .hero-btns {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .btn-primary {
+    background: var(--ink);
+    color: var(--white);
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    text-decoration: none;
+    transition: transform 0.15s, box-shadow 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink);
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 15px;
+    text-decoration: none;
+    border: 1px solid var(--stone);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .btn-ghost:hover {
+    border-color: var(--muted);
+    background: var(--off);
+  }
+
+  /* TERMINAL MOCKUP */
+  .hero-terminal {
+    margin-top: 4rem;
+    width: 100%;
+    max-width: 700px;
+    background: var(--ink);
+    border-radius: 12px;
+    overflow: hidden;
+    text-align: left;
+    box-shadow: 0 32px 64px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.06);
+  }
+  .terminal-bar {
+    background: #2c2b28;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .terminal-dot.r { background: #ff5f56; }
+  .terminal-dot.y { background: #ffbd2e; }
+  .terminal-dot.g { background: #27c93f; }
+  .terminal-title {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #666;
+    letter-spacing: 0.04em;
+  }
+  .terminal-body {
+    padding: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.9;
+  }
+  .t-dim { color: #555; }
+  .t-green { color: #7dde9a; }
+  .t-blue { color: #7eb5ff; }
+  .t-yellow { color: #f0c060; }
+  .t-white { color: #e0ddd6; }
+  .t-prompt { color: #7eb5ff; }
+  .t-cursor {
+    display: inline-block;
+    width: 8px;
+    height: 14px;
+    background: #7eb5ff;
+    vertical-align: middle;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+  /* SECTION BASE */
+  section { padding: 6rem 2rem; }
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    display: block;
+  }
+  .section-title {
+    font-family: var(--serif);
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+  }
+  .section-desc {
+    font-size: 17px;
+    color: var(--ink2);
+    max-width: 540px;
+    line-height: 1.65;
+  }
+
+  /* STATS ROW */
+  .stats {
+    background: var(--off);
+    border-top: 1px solid var(--stone);
+    border-bottom: 1px solid var(--stone);
+    padding: 3rem 2rem;
+  }
+  .stats-grid {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 2rem;
+    text-align: center;
+  }
+  .stat-num {
+    font-family: var(--serif);
+    font-size: 3rem;
+    color: var(--ink);
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+  .stat-label {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  /* FEATURES */
+  #features { background: var(--white); }
+  .features-header {
+    margin-bottom: 4rem;
+  }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5px;
+    background: var(--stone);
+    border: 1.5px solid var(--stone);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .feature-card {
+    background: var(--white);
+    padding: 2.5rem;
+    transition: background 0.2s;
+  }
+  .feature-card:hover { background: var(--off); }
+  .feature-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+  }
+  .feature-icon svg { color: var(--accent); }
+  .feature-card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+    color: var(--ink);
+  }
+  .feature-card p {
+    font-size: 14px;
+    color: var(--ink2);
+    line-height: 1.65;
+  }
+  .feature-tag {
+    display: inline-block;
+    margin-top: 1rem;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  /* SHELL SHOWCASE */
+  #screenshots { background: var(--off); }
+  .screenshots-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: start;
+    margin-top: 3rem;
+  }
+  @media (max-width: 750px) {
+    .screenshots-layout { grid-template-columns: 1fr; }
+  }
+  .shell-demo {
+    background: var(--ink);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.15);
+  }
+  .shell-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .shell-item {
+    background: var(--white);
+    border: 1px solid var(--stone);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .shell-item:hover, .shell-item.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .shell-item h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--ink);
+  }
+  .shell-item p {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .shell-item.active h4 { color: var(--accent); }
+
+  /* ARCH DIAGRAM */
+  .arch-diagram {
+    background: var(--white);
+    border: 1px solid var(--stone);
+    border-radius: 16px;
+    padding: 2.5rem;
+    margin-top: 3rem;
+  }
+  .arch-layers {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .arch-layer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .arch-layer.l-bios { background: #f0f0ee; color: #666; }
+  .arch-layer.l-boot { background: #e8edff; color: var(--accent); }
+  .arch-layer.l-kernel { background: #e8f5e9; color: #2e7d32; }
+  .arch-layer.l-shell { background: #fff8e1; color: #f57f17; }
+  .arch-layer.l-user { background: #fce4ec; color: #c2185b; }
+  .arch-label {
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    min-width: 80px;
+    opacity: 0.7;
+  }
+  .arch-desc { font-size: 12px; opacity: 0.85; }
+
+  /* DOWNLOAD */
+  #download {
+    background: var(--ink);
+    color: var(--white);
+  }
+  #download .section-title { color: var(--white); }
+  #download .section-desc { color: rgba(255,255,255,0.6); }
+  #download .section-label { color: rgba(255,255,255,0.4); }
+  .download-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+    margin-top: 3rem;
+  }
+  .dl-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 2rem;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .dl-card:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.2);
+  }
+  .dl-card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--white);
+  }
+  .dl-card p {
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+  }
+  .dl-version {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 1.5rem;
+  }
+  .btn-dl {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--white);
+    color: var(--ink);
+    padding: 10px 20px;
+    border-radius: 7px;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    transition: transform 0.15s;
+  }
+  .btn-dl:hover { transform: translateY(-1px); }
+  .btn-dl-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    color: rgba(255,255,255,0.7);
+    padding: 10px 20px;
+    border-radius: 7px;
+    font-weight: 500;
+    font-size: 14px;
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.2);
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-dl-ghost:hover {
+    border-color: rgba(255,255,255,0.4);
+    color: var(--white);
+  }
+  .build-box {
+    margin-top: 3rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 2rem;
+  }
+  .build-box h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 1rem;
+  }
+  .build-cmd {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: #7dde9a;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .build-cmd .cmd-line::before {
+    content: '$ ';
+    color: #555;
+  }
+
+  /* FOOTER */
+  footer {
+    background: var(--off);
+    border-top: 1px solid var(--stone);
+    padding: 3rem 2rem;
+    text-align: center;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  footer strong { color: var(--ink2); font-weight: 600; }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    nav ul { display: none; }
+    .hero h1 { font-size: 2.8rem; }
+    section { padding: 4rem 1.25rem; }
+  }
+
+  /* SCROLL REVEAL */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <span></span>
+    Eclipse32
+  </div>
+  <ul>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#screenshots">Shell</a></li>
+    <li><a href="#branches">Branches</a></li>
+    <li><a href="#source">Source</a></li>
+    <li><a href="#download">Download</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div style="position:relative;display:flex;flex-direction:column;align-items:center;">
+    <div class="hero-badge">
+      ✦ v1.1.2 — MIT License
+    </div>
+    <h1>An OS<br>built from <em>zero.</em></h1>
+    <p class="hero-sub">32-bit · x86 · C + NASM · FAT32</p>
+    <p>Eclipse32 is a bare-metal operating system written entirely from scratch — bootloader, kernel, memory manager, filesystem, and shell. No libraries. No shortcuts.</p>
+    <div class="hero-btns">
+      <a href="#download" class="btn-primary">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/></svg>
+        Download Eclipse32
+      </a>
+      <a href="#features" class="btn-ghost">Explore features →</a>
+    </div>
+
+    <!-- Terminal -->
+    <div class="hero-terminal" style="margin:3rem auto 0;">
+      <div class="terminal-bar">
+        <div class="terminal-dot r"></div>
+        <div class="terminal-dot y"></div>
+        <div class="terminal-dot g"></div>
+        <span class="terminal-title">Eclipse Shell — esh</span>
+      </div>
+      <div class="terminal-body">
+        <div><span class="t-dim">[boot] Stage 1 → Stage 2 → Kernel...</span></div>
+        <div><span class="t-green">✓</span> <span class="t-white">VBE framebuffer 1024×768×32 ready</span></div>
+        <div><span class="t-green">✓</span> <span class="t-white">FAT32 mounted at /</span></div>
+        <div><span class="t-green">✓</span> <span class="t-white">Eclipse Shell (esh) starting...</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-prompt">root@eclipse32:/ $</span> <span class="t-white">uname -a</span></div>
+        <div><span class="t-yellow">Eclipse32 1.1.2 x86 (i686) bare-metal</span></div>
+        <div><span class="t-prompt">root@eclipse32:/ $</span> <span class="t-white">ls</span></div>
+        <div><span class="t-blue">boot/</span>  <span class="t-blue">kernel/</span>  <span class="t-blue">shell/</span>  <span class="t-green">CHANGELOG.txt</span>  <span class="t-green">README.md</span></div>
+        <div><span class="t-prompt">root@eclipse32:/ $</span> <span class="t-cursor"></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stats-grid">
+    <div class="reveal">
+      <div class="stat-num">2</div>
+      <div class="stat-label">Stage bootloader</div>
+    </div>
+    <div class="reveal">
+      <div class="stat-num">128</div>
+      <div class="stat-label">Shell history entries</div>
+    </div>
+    <div class="reveal">
+      <div class="stat-num">32</div>
+      <div class="stat-label">Environment variables</div>
+    </div>
+    <div class="reveal">
+      <div class="stat-num">256</div>
+      <div class="stat-label">IDT interrupt entries</div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="container">
+    <div class="features-header reveal">
+      <span class="section-label">What's inside</span>
+      <h2 class="section-title">Every layer,<br>written by hand.</h2>
+      <p class="section-desc">From the 16-bit MBR to the FAT32 driver, every subsystem is original code. Nothing borrowed, nothing abstracted away.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12V5a2 2 0 012-2h10a2 2 0 012 2v7M5 12l7 7 7-7"/></svg>
+        </div>
+        <h3>Two-Stage Bootloader</h3>
+        <p>Stage 1 in 512-byte MBR space. Stage 2 sets up GDT, IDT, A20 line, VBE graphics, paging, and loads the kernel from FAT32.</p>
+        <span class="feature-tag">boot.asm · stage2.asm</span>
+      </div>
+
+      <div class="feature-card reveal">
+        <div class="feature-icon">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+        </div>
+        <h3>Memory Manager</h3>
+        <p>Bitmap-based physical page allocator, virtual memory manager with page tables, and a boundary-tag heap with kmalloc / kfree.</p>
+        <span class="feature-tag">pmm · vmm · heap</span>
+      </div>
+
+      <div class="feature-card reveal">
+        <div class="feature-icon">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h10M4 18h6"/></svg>
+        </div>
+        <h3>Full FAT32 Driver</h3>
+        <p>Mount, open, read, write, seek, directory listing, stat, and file creation — a complete filesystem stack over ATA PIO.</p>
+        <span class="feature-tag">fs/fat32</span>
+      </div>
+
+      <div class="feature-card reveal">
+        <div class="feature-icon">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        </div>
+        <h3>VBE Framebuffer</h3>
+        <p>1024×768 32-bit color graphics mode with pixel drawing, an 8×16 bitmap font, and a full graphical boot splash with progress bar.</p>
+        <span class="feature-tag">vbe.c</span>
+      </div>
+
+      <div class="feature-card reveal">
+        <div class="feature-icon">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+        <h3>Eclipse Shell (esh)</h3>
+        <p>A full shell with line editing, 128-entry history, scripting (if/else, pipes, redirection), variables, aliases, and 30+ built-in commands.</p>
+        <span class="feature-tag">shell.c</span>
+      </div>
+
+      <div class="feature-card reveal">
+        <div class="feature-icon">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 15l-2 5L9 9l11 4-5 2zm0 0l5-5"/></svg>
+        </div>
+        <h3>.E32 Executable Format</h3>
+        <p>Eclipse32's own binary format with a C runtime, syscall interface, basic libc integration, and interactive stdin support.</p>
+        <span class="feature-tag">ekuecho_pkg</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCREENSHOTS / SHELL -->
+<section id="screenshots">
+  <div class="container">
+    <span class="section-label reveal">Under the hood</span>
+    <h2 class="section-title reveal">The stack, layer by layer.</h2>
+
+    <div class="arch-diagram reveal">
+      <div class="arch-layers">
+        <div class="arch-layer l-bios">
+          <span class="arch-label">BIOS</span>
+          <span class="arch-desc">Power-on self test → hands control to MBR at 0x7C00</span>
+        </div>
+        <div style="text-align:center;font-size:11px;color:var(--muted);padding:2px 0;">↓</div>
+        <div class="arch-layer l-boot">
+          <span class="arch-label">Stage 1</span>
+          <span class="arch-desc">16-bit real mode · Verifies 0xEC32 magic · loads Stage 2 via INT 13h LBA</span>
+        </div>
+        <div style="text-align:center;font-size:11px;color:var(--muted);padding:2px 0;">↓</div>
+        <div class="arch-layer l-boot">
+          <span class="arch-label">Stage 2</span>
+          <span class="arch-desc">A20 · VBE · GDT/IDT · paging · PIC remap · FAT32 · loads KERNEL.BIN to 0x100000</span>
+        </div>
+        <div style="text-align:center;font-size:11px;color:var(--muted);padding:2px 0;">↓</div>
+        <div class="arch-layer l-kernel">
+          <span class="arch-label">Kernel</span>
+          <span class="arch-desc">PMM · VMM · heap · VGA · VBE · PS/2 kbd · ATA · FAT32 · initramfs</span>
+        </div>
+        <div style="text-align:center;font-size:11px;color:var(--muted);padding:2px 0;">↓</div>
+        <div class="arch-layer l-shell">
+          <span class="arch-label">ESH</span>
+          <span class="arch-desc">Eclipse Shell · line editor · history · scripting · pipes · redirection · aliases</span>
+        </div>
+        <div style="text-align:center;font-size:11px;color:var(--muted);padding:2px 0;">↓</div>
+        <div class="arch-layer l-user">
+          <span class="arch-label">.E32 Apps</span>
+          <span class="arch-desc">User executables · C runtime · syscall interface · stdin/stdout</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screenshots-layout" style="margin-top:3rem;">
+      <div>
+        <h3 style="font-size:1.1rem;font-weight:600;margin-bottom:1rem;">Shell commands</h3>
+        <div class="shell-list">
+          <div class="shell-item active reveal">
+            <h4>Line editing</h4>
+            <p>Insert/delete at cursor, Home/End/Delete, Ctrl+A/E/K/L/C</p>
+          </div>
+          <div class="shell-item reveal">
+            <h4>Scripting engine</h4>
+            <p>.sh files, if/then/else/fi, &&, ||, pipes |, redirection &gt; &lt; &gt;&gt;</p>
+          </div>
+          <div class="shell-item reveal">
+            <h4>Variables & env</h4>
+            <p>set/export/env, $VAR ${VAR}, $? exit code, per-process inheritance</p>
+          </div>
+          <div class="shell-item reveal">
+            <h4>30+ built-ins</h4>
+            <p>ls, cat, mkdir, rm, cp, mv, alias, history, uname, uptime, free, date…</p>
+          </div>
+        </div>
+      </div>
+      <div class="reveal">
+        <div class="shell-demo">
+          <div class="terminal-bar">
+            <div class="terminal-dot r"></div>
+            <div class="terminal-dot y"></div>
+            <div class="terminal-dot g"></div>
+            <span class="terminal-title">esh — scripting demo</span>
+          </div>
+          <div class="terminal-body">
+            <div><span class="t-prompt">root@eclipse32:/ $</span> <span class="t-white">cat greet.sh</span></div>
+            <div><span class="t-yellow">#!/bin/esh</span></div>
+            <div><span class="t-blue">if</span> <span class="t-white">test $1 = "world"</span><span class="t-blue">; then</span></div>
+            <div>&nbsp;&nbsp;<span class="t-white">echo "Hello, $1!"</span></div>
+            <div><span class="t-blue">else</span></div>
+            <div>&nbsp;&nbsp;<span class="t-white">echo "Usage: greet world"</span></div>
+            <div><span class="t-blue">fi</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-prompt">root@eclipse32:/ $</span> <span class="t-white">source greet.sh world</span></div>
+            <div><span class="t-green">Hello, world!</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-prompt">root@eclipse32:/ $</span> <span class="t-white">ls | cat</span></div>
+            <div><span class="t-blue">boot/</span>  <span class="t-blue">kernel/</span>  <span class="t-blue">shell/</span></div>
+            <div><span class="t-prompt">root@eclipse32:/ $</span> <span class="t-cursor"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section id="download">
+  <div class="container">
+    <span class="section-label">Get started</span>
+    <h2 class="section-title">Run Eclipse32 today.</h2>
+    <p class="section-desc">Boot in QEMU in minutes, or build from source with the cross-compiler toolchain.</p>
+
+    <div class="download-cards">
+      <div class="dl-card reveal">
+        <h3>Disk Image</h3>
+        <p class="dl-version">eclipse32.img · v1.1.2 · FAT32</p>
+        <p>Pre-built bootable disk image. Drop it into QEMU and you're running.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <a href="https://github.com/Agh0stt/eclipse32" class="btn-dl">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 15V3m0 12l-4-4m4 4l4-4"/></svg>
+            Download Eclipse32
+          </a>
+           <a href="https://github.com/Agh0stt/eclipse32_gui" class="btn-dl">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 15V3m0 12l-4-4m4 4l4-4"/></svg>
+            Download Eclipse32 Desktop Edition
+          </a>
+          <a href="https://github.com/Agh0stt/eclipse32" class="btn-dl-ghost">GitHub (Eclipse32 Main) →</a>
+          <a href="https://github.com/Agh0stt/eclipse32_gui" class="btn-dl-ghost">GitHub (Eclipse32 Desktop Edition) →</a>
+        </div>
+      </div>
+
+      <div class="dl-card reveal">
+        <h3>Source Code</h3>
+        <p class="dl-version">C + NASM · MIT License · 2026 Abhigyan</p>
+        <p>Full source — bootloader, kernel, drivers, shell. Hackable and well-documented.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <a href="https://github.com/Agh0stt/eclipse32" class="btn-dl-ghost">View on GitHub (Eclipse32 Main) →</a>
+          <a href="https://github.com/Agh0stt/eclipse32_gui" class="btn-dl-ghost">View on GitHub (Eclipse32 Desktop Edition) →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="build-box reveal">
+      <h3>Build & run from source</h3>
+      <div class="build-cmd">
+        <span class="cmd-line">git clone https://github.com/Agh0stt/eclipse32.git or the desktop edition at https://github.com/Agh0stt/eclipse32_gui.git </span>
+        <span class="cmd-line">cd eclipse32 or eclipse32_gui</span>
+        <span class="cmd-line">make          <span style="color:#444"># → build/eclipse32.img</span></span>
+        <span class="cmd-line">make run      <span style="color:#444"># launch in QEMU</span></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BRANCHES -->
+<section id="branches" style="background:var(--white);">
+  <div class="container">
+    <span class="section-label reveal">Two flavors</span>
+    <h2 class="section-title reveal">Choose your branch.</h2>
+    <p class="section-desc reveal">Eclipse32 has two active development branches — the classic VGA text-mode platform, and the GUI branch with a full window manager.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-top:3rem;" class="branch-grid">
+
+      <!-- VGA TEXT BRANCH -->
+      <div class="reveal" style="border:1.5px solid var(--stone);border-radius:16px;overflow:hidden;">
+        <div style="background:var(--ink);padding:2rem;">
+          <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#555;margin-bottom:0.75rem;">main branch</div>
+          <div style="font-family:var(--serif);font-size:1.6rem;color:#e0ddd6;line-height:1.2;margin-bottom:0.5rem;">Eclipse32<br><span style="color:#7dde9a;">Main</span></div>
+          <div style="font-family:var(--mono);font-size:12px;color:#555;margin-top:0.5rem;">Eclipse32 Main · v1.1.2</div>
+        </div>
+        <div style="padding:2rem;background:var(--off);">
+          <p style="font-size:14px;color:var(--ink2);margin-bottom:1.5rem;line-height:1.7;">The stable platform branch. Uses <strong>VGA text mode</strong> (80×25) for all output. This is where the fully working shell, .E32 executable runtime, stdin fixes, FAT32 driver, and scripting engine live.</p>
+
+          <div style="display:flex;flex-direction:column;gap:0.6rem;margin-bottom:1.5rem;">
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink2);">
+              <span style="color:#7dde9a;font-size:16px;">✓</span> Eclipse Shell (esh) with full scripting
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink2);">
+              <span style="color:#7dde9a;font-size:16px;">✓</span> .E32 binary format + stdin fix (v1.1.2)
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink2);">
+              <span style="color:#7dde9a;font-size:16px;">✓</span> VGA driver — 80×25, 16 colors, cursor
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink2);">
+              <span style="color:#7dde9a;font-size:16px;">✓</span> FAT32 full R/W, ATA PIO disk driver
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink2);">
+              <span style="color:#7dde9a;font-size:16px;">✓</span> PMM, VMM, heap, GDT/IDT/PIC/PIT
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink2);">
+              <span style="color:#7dde9a;font-size:16px;">✓</span> Syscall gate (INT 0x80), login, initramfs
+            </div>
+          </div>
+
+          <!-- Key source preview -->
+          <div style="background:var(--ink);border-radius:8px;padding:1rem;font-family:var(--mono);font-size:11.5px;line-height:1.8;">
+            <div style="color:#555;margin-bottom:4px;">// kernel/kmain.c — VGA text mode boot</div>
+            <div style="color:#7eb5ff;">void <span style="color:#7dde9a;">kmain</span><span style="color:#e0ddd6;">(boot_info_t *boot_info) {</span></div>
+            <div style="color:#e0ddd6;">&nbsp;&nbsp;<span style="color:#7eb5ff;">vga_init</span>();</div>
+            <div style="color:#e0ddd6;">&nbsp;&nbsp;<span style="color:#7eb5ff;">vga_puts</span>(<span style="color:#f0c060;">"Eclipse32 Kernel v0.1\n"</span>);</div>
+            <div style="color:#e0ddd6;">&nbsp;&nbsp;<span style="color:#7eb5ff;">gdt_init</span>(); <span style="color:#555;">// GDT + TSS</span></div>
+            <div style="color:#e0ddd6;">&nbsp;&nbsp;<span style="color:#7eb5ff;">idt_init</span>(); <span style="color:#555;">// 256 entries</span></div>
+            <div style="color:#e0ddd6;">&nbsp;&nbsp;<span style="color:#7eb5ff;">pit_init</span>(<span style="color:#f0c060;">1000</span>); <span style="color:#555;">// 1000Hz timer</span></div>
+            <div style="color:#e0ddd6;">&nbsp;&nbsp;<span style="color:#7eb5ff;">heap_init</span>(<span style="color:#f0c060;">0xC0000000</span>, <span style="color:#f0c060;">4*1024*1024</span>);</div>
+            <div style="color:#e0ddd6;">&nbsp;&nbsp;<span style="color:#555;">// VBE disabled – VGA text mode only</span></div>
+            <div style="color:#e0ddd6;">&nbsp;&nbsp;<span style="color:#7eb5ff;">fat32_mount</span>(<span style="color:#f0c060;">0</span>);</div>
+            <div style="color:#e0ddd6;">&nbsp;&nbsp;<span style="color:#7eb5ff;">initramfs_start</span>(); <span style="color:#555;">// → shell</span></div>
+            <div style="color:#e0ddd6;">}</div>
+          </div>
+
+          <div style="margin-top:1.25rem;display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="https://github.com/search?q=eclipse32+platform+experimental&type=repositories" style="font-size:13px;font-weight:600;background:var(--ink);color:#fff;padding:8px 16px;border-radius:7px;text-decoration:none;">View on GitHub →</a>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;display:inline-flex;align-items:center;">eclipse32_main</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- GUI BRANCH -->
+      <div class="reveal" style="border:1.5px solid #2a5cff44;border-radius:16px;overflow:hidden;">
+        <div style="background:linear-gradient(135deg,#001a33 0%,#0a1628 100%);padding:2rem;">
+          <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#3060a0;margin-bottom:0.75rem;">gui branch · experimental</div>
+          <div style="font-family:var(--serif);font-size:1.6rem;color:#d0e8ff;line-height:1.2;margin-bottom:0.5rem;">Eclipse32<br><span style="color:#58a6ff;">Desktop Edition</span></div>
+          <div style="font-family:var(--mono);font-size:12px;color:#3060a0;margin-top:0.5rem;">Desktop Edition · VBE 1024×768×32</div>
+        </div>
+        <div style="padding:2rem;background:#f0f4ff;">
+          <p style="font-size:14px;color:var(--ink2);margin-bottom:1.5rem;line-height:1.7;">The GUI branch adds a full <strong>EclipseGUI window manager</strong> with a Windows 3.1-style desktop, draggable windows, taskbar, mouse support, and built-in apps — all running on a 1024×768 VBE framebuffer.</p>
+
+          <div style="display:flex;flex-direction:column;gap:0.6rem;margin-bottom:1.5rem;">
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink2);">
+              <span style="color:#58a6ff;font-size:16px;">✦</span> EclipseGUI window manager (gui.c / gui_desktop.c)
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink2);">
+              <span style="color:#58a6ff;font-size:16px;">✦</span> Up to 16 windows, Z-order, drag, close button
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink2);">
+              <span style="color:#58a6ff;font-size:16px;">✦</span> Taskbar + Start menu, double-buffer (no flicker)
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink2);">
+              <span style="color:#58a6ff;font-size:16px;">✦</span> Built-in apps: FileManager, Terminal, Clock, Paint, About
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink2);">
+              <span style="color:#58a6ff;font-size:16px;">✦</span> PS/2 Mouse driver with cursor rendering
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink2);">
+              <span style="color:#f0c060;font-size:14px;">⚠</span> stdin in GUI shell pending (see todo.txt)
+            </div>
+          </div>
+
+          <!-- GUI struct preview -->
+          <div style="background:#0a1628;border-radius:8px;padding:1rem;font-family:var(--mono);font-size:11.5px;line-height:1.8;">
+            <div style="color:#3060a0;margin-bottom:4px;">// kernel/gui/gui.h — window manager API</div>
+            <div><span style="color:#58a6ff;">typedef struct</span> <span style="color:#d0e8ff;">{</span></div>
+            <div style="color:#d0e8ff;">&nbsp;&nbsp;<span style="color:#7eb5ff;">bool</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;used;</div>
+            <div style="color:#d0e8ff;">&nbsp;&nbsp;<span style="color:#7eb5ff;">uint32_t</span> id;</div>
+            <div style="color:#d0e8ff;">&nbsp;&nbsp;<span style="color:#7eb5ff;">int32_t</span>&nbsp;&nbsp;x, y; <span style="color:#3060a0;">// screen pos</span></div>
+            <div style="color:#d0e8ff;">&nbsp;&nbsp;<span style="color:#7eb5ff;">uint32_t</span> w, h; <span style="color:#3060a0;">// content area</span></div>
+            <div style="color:#d0e8ff;">&nbsp;&nbsp;<span style="color:#7eb5ff;">char</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;title[<span style="color:#f0c060;">64</span>];</div>
+            <div style="color:#d0e8ff;">&nbsp;&nbsp;<span style="color:#7eb5ff;">uint32_t</span> *backbuf; <span style="color:#3060a0;">// pixel buffer</span></div>
+            <div style="color:#d0e8ff;">&nbsp;&nbsp;gui_paint_fn_t on_paint;</div>
+            <div style="color:#d0e8ff;">&nbsp;&nbsp;gui_event_fn_t on_event;</div>
+            <div><span style="color:#58a6ff;">}</span> <span style="color:#7dde9a;">gui_window_t</span><span style="color:#d0e8ff;">; <span style="color:#3060a0;">// max 16</span></span></div>
+          </div>
+
+          <div style="margin-top:1.25rem;display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="https://github.com/search?q=eclipse32+gui&type=repositories" style="font-size:13px;font-weight:600;background:#0a1628;color:#58a6ff;border:1px solid #1a3a5c;padding:8px 16px;border-radius:7px;text-decoration:none;">View on GitHub →</a>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;display:inline-flex;align-items:center;">eclipse32_desktop_edition</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Branch comparison table -->
+    <div class="reveal" style="margin-top:3rem;border:1px solid var(--stone);border-radius:14px;overflow:hidden;">
+      <div style="background:var(--ink);padding:1rem 1.5rem;font-family:var(--mono);font-size:12px;color:#7eb5ff;letter-spacing:0.06em;text-transform:uppercase;">Branch Comparison</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:var(--off);">
+            <th style="padding:10px 16px;text-align:left;font-weight:600;color:var(--muted);border-bottom:1px solid var(--stone);">Feature</th>
+            <th style="padding:10px 16px;text-align:center;font-weight:600;color:var(--ink);border-bottom:1px solid var(--stone);">Eclipse32 Main</th>
+            <th style="padding:10px 16px;text-align:center;font-weight:600;color:#2a5cff;border-bottom:1px solid var(--stone);">Desktop Edition (experimental)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--stone);">
+            <td style="padding:10px 16px;color:var(--ink2);">Display</td>
+            <td style="padding:10px 16px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink);">VGA text 80×25</td>
+            <td style="padding:10px 16px;text-align:center;font-family:var(--mono);font-size:12px;color:#2a5cff;">VBE 1024×768×32</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--stone);background:var(--off);">
+            <td style="padding:10px 16px;color:var(--ink2);">Window manager</td>
+            <td style="padding:10px 16px;text-align:center;">—</td>
+            <td style="padding:10px 16px;text-align:center;color:#2a5cff;">✦ EclipseGUI WM</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--stone);">
+            <td style="padding:10px 16px;color:var(--ink2);">Mouse support</td>
+            <td style="padding:10px 16px;text-align:center;">—</td>
+            <td style="padding:10px 16px;text-align:center;color:#2a5cff;">✦ PS/2 mouse driver</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--stone);background:var(--off);">
+            <td style="padding:10px 16px;color:var(--ink2);">Eclipse Shell (esh)</td>
+            <td style="padding:10px 16px;text-align:center;color:#2e7d32;">✓ Full</td>
+            <td style="padding:10px 16px;text-align:center;color:#f57f17;">Terminal window (stdin WIP)</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--stone);">
+            <td style="padding:10px 16px;color:var(--ink2);">.E32 app runtime</td>
+            <td style="padding:10px 16px;text-align:center;color:#2e7d32;">✓ Full + stdin fix</td>
+            <td style="padding:10px 16px;text-align:center;color:#2e7d32;">✓ Present</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--stone);background:var(--off);">
+            <td style="padding:10px 16px;color:var(--ink2);">FAT32 filesystem</td>
+            <td style="padding:10px 16px;text-align:center;color:#2e7d32;">✓ Full R/W</td>
+            <td style="padding:10px 16px;text-align:center;color:#2e7d32;">✓ Full R/W</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 16px;color:var(--ink2);">Built-in GUI apps</td>
+            <td style="padding:10px 16px;text-align:center;">—</td>
+            <td style="padding:10px 16px;text-align:center;color:#2a5cff;">FileManager, Clock, Paint, About and more</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+
+<!-- SOURCE CODE -->
+<section id="source" style="background:var(--white);">
+  <div class="container">
+    <span class="section-label reveal">Real source</span>
+    <h2 class="section-title reveal">Read the code.</h2>
+    <p class="section-desc reveal">Eclipse32 is open source. Below are real excerpts from key files — click any tab to explore the actual kernel, shell, or GUI source.</p>
+
+    <div class="reveal" style="margin-top:3rem;border:1px solid var(--stone);border-radius:14px;overflow:hidden;">
+      <!-- Tab bar -->
+      <div style="background:var(--off);border-bottom:1px solid var(--stone);display:flex;overflow-x:auto;gap:0;">
+        <button class="src-tab active" data-tab="kmain" onclick="srcShow('kmain',this)">kmain.c</button>
+        <button class="src-tab" data-tab="guih" onclick="srcShow('guih',this)">gui.h</button>
+        <button class="src-tab" data-tab="shellc" onclick="srcShow('shellc',this)">shell.c (excerpt)</button>
+        <button class="src-tab" data-tab="syscall" onclick="srcShow('syscall',this)">syscall.h</button>
+        <button class="src-tab" data-tab="fat32h" onclick="srcShow('fat32h',this)">fat32.h</button>
+        <button class="src-tab" data-tab="e32" onclick="srcShow('e32',this)">e32_syscall.h</button>
+      </div>
+
+      <!-- Source panels -->
+      <div id="src-kmain" class="src-panel" style="background:var(--ink);padding:1.5rem;font-family:var(--mono);font-size:12px;line-height:1.85;overflow-x:auto;max-height:420px;overflow-y:auto;color:#e0ddd6;">
+<pre style="margin:0;"><span style="color:#555;">// =============================================================================
+// Eclipse32 Kernel — kmain.c  (main branch / VGA text mode)
+// Entry point from entry.asm. EAX = boot_info_t*
+// =============================================================================</span>
+<span style="color:#7eb5ff;">void</span> <span style="color:#7dde9a;">kmain</span>(boot_info_t *boot_info) {
+    <span style="color:#555;">// Phase 1: VGA text mode — early debug output</span>
+    <span style="color:#7dde9a;">vga_init</span>();
+    <span style="color:#7dde9a;">vga_clear</span>();
+    <span style="color:#7dde9a;">vga_set_color</span>(VGA_COLOR_CYAN, VGA_COLOR_BLACK);
+    <span style="color:#7dde9a;">vga_puts</span>(<span style="color:#f0c060;">"Eclipse32 Kernel v0.1\n"</span>);
+
+    <span style="color:#555;">// Phase 2: CPU structures</span>
+    <span style="color:#7dde9a;">gdt_init</span>();   <span style="color:#555;">// GDT + TSS</span>
+    <span style="color:#7dde9a;">idt_init</span>();   <span style="color:#555;">// 256-entry IDT</span>
+    <span style="color:#7dde9a;">pic_remap</span>(<span style="color:#f0c060;">0x20</span>, <span style="color:#f0c060;">0x28</span>);
+    <span style="color:#7dde9a;">pit_init</span>(<span style="color:#f0c060;">1000</span>);  <span style="color:#555;">// 1000 Hz timer tick</span>
+    <span style="color:#7dde9a;">syscall_init</span>();
+
+    <span style="color:#7eb5ff;">asm volatile</span>(<span style="color:#f0c060;">"sti"</span>);  <span style="color:#555;">// enable interrupts</span>
+
+    <span style="color:#555;">// Phase 3: Memory management</span>
+    <span style="color:#7eb5ff;">uint32_t</span> mem_start = (<span style="color:#7eb5ff;">uint32_t</span>)&amp;kernel_end;
+    <span style="color:#7dde9a;">pmm_init</span>(mem_start, <span style="color:#f0c060;">32*1024*1024</span> - mem_start);
+    <span style="color:#7dde9a;">vmm_init</span>(boot_info);
+    <span style="color:#7dde9a;">heap_init</span>(<span style="color:#f0c060;">0xC0000000</span>, <span style="color:#f0c060;">4*1024*1024</span>);  <span style="color:#555;">// 4MB at 0xC0000000</span>
+
+    <span style="color:#555;">// Phase 4: Drivers</span>
+    <span style="color:#7dde9a;">keyboard_init</span>();
+    <span style="color:#7dde9a;">ata_init</span>();
+    <span style="color:#555;">// VBE disabled — VGA text mode branch</span>
+
+    <span style="color:#555;">// Phase 5: Filesystem + launch shell</span>
+    <span style="color:#7dde9a;">fat32_mount</span>(<span style="color:#f0c060;">0</span>);
+    <span style="color:#7dde9a;">initramfs_start</span>();   <span style="color:#555;">// → ESH shell, never returns</span>
+    <span style="color:#7dde9a;">kpanic</span>(<span style="color:#f0c060;">"InitRAMFS returned unexpectedly!"</span>);
+}</pre>
+      </div>
+
+      <div id="src-guih" class="src-panel" style="display:none;background:#0a1628;padding:1.5rem;font-family:var(--mono);font-size:12px;line-height:1.85;overflow-x:auto;max-height:420px;overflow-y:auto;color:#d0e8ff;">
+<pre style="margin:0;"><span style="color:#3060a0;">// =============================================================================
+// Eclipse32 — EclipseGUI Window Manager Header  (with_gui branch)
+// Compositing WM for VBE 1024x768x32 framebuffer
+// =============================================================================</span>
+<span style="color:#58a6ff;">#define</span> GUI_WINDOW_MAX      <span style="color:#f0c060;">16</span>
+<span style="color:#58a6ff;">#define</span> GUI_TITLEBAR_H      <span style="color:#f0c060;">28</span>
+<span style="color:#58a6ff;">#define</span> GUI_SCREEN_W        <span style="color:#f0c060;">1024</span>
+<span style="color:#58a6ff;">#define</span> GUI_SCREEN_H        <span style="color:#f0c060;">768</span>
+
+<span style="color:#58a6ff;">typedef struct</span> {
+    <span style="color:#7eb5ff;">bool</span>      used;
+    <span style="color:#7eb5ff;">uint32_t</span>  id;
+    <span style="color:#7eb5ff;">int32_t</span>   x, y;          <span style="color:#3060a0;">// screen position</span>
+    <span style="color:#7eb5ff;">uint32_t</span>  w, h;          <span style="color:#3060a0;">// content area</span>
+    <span style="color:#7eb5ff;">char</span>      title[<span style="color:#f0c060;">64</span>];
+    <span style="color:#7eb5ff;">uint32_t</span>  style;         <span style="color:#3060a0;">// DECORATED | RESIZABLE | TOPMOST</span>
+    <span style="color:#7eb5ff;">uint32_t</span> *backbuf;       <span style="color:#3060a0;">// per-window pixel buffer (w*h)</span>
+    <span style="color:#7eb5ff;">bool</span>      dirty;
+    <span style="color:#7eb5ff;">bool</span>      dragging;
+    <span style="color:#7eb5ff;">int32_t</span>   drag_off_x, drag_off_y;
+    gui_paint_fn_t  on_paint;
+    gui_event_fn_t  on_event;
+    <span style="color:#7eb5ff;">void</span>           *userdata;
+} <span style="color:#7dde9a;">gui_window_t</span>;
+
+<span style="color:#3060a0;">// Public API</span>
+<span style="color:#7eb5ff;">uint32_t</span>  <span style="color:#7dde9a;">gui_window_create</span>(<span style="color:#7eb5ff;">int32_t</span> x, <span style="color:#7eb5ff;">int32_t</span> y, <span style="color:#7eb5ff;">uint32_t</span> w, <span style="color:#7eb5ff;">uint32_t</span> h,
+                              <span style="color:#7eb5ff;">const char</span> *title, <span style="color:#7eb5ff;">uint32_t</span> style,
+                              gui_paint_fn_t on_paint, gui_event_fn_t on_event,
+                              <span style="color:#7eb5ff;">void</span> *userdata);
+<span style="color:#7eb5ff;">void</span>      <span style="color:#7dde9a;">gui_window_destroy</span>(<span style="color:#7eb5ff;">uint32_t</span> id);
+<span style="color:#7eb5ff;">void</span>      <span style="color:#7dde9a;">gui_window_invalidate</span>(<span style="color:#7eb5ff;">uint32_t</span> id);
+<span style="color:#7eb5ff;">void</span>      <span style="color:#7dde9a;">gui_run</span>(<span style="color:#7eb5ff;">void</span>);     <span style="color:#3060a0;">// main event loop (never returns)</span>
+
+<span style="color:#3060a0;">// Drawing primitives</span>
+<span style="color:#7eb5ff;">void</span> <span style="color:#7dde9a;">gui_dc_fill_rect</span>(gui_dc_t*, <span style="color:#7eb5ff;">int32_t</span> x, <span style="color:#7eb5ff;">int32_t</span> y, <span style="color:#7eb5ff;">uint32_t</span> w, <span style="color:#7eb5ff;">uint32_t</span> h, <span style="color:#7eb5ff;">uint32_t</span> color);
+<span style="color:#7eb5ff;">void</span> <span style="color:#7dde9a;">gui_dc_draw_text</span>(gui_dc_t*, <span style="color:#7eb5ff;">int32_t</span> x, <span style="color:#7eb5ff;">int32_t</span> y, <span style="color:#7eb5ff;">const char</span>*, <span style="color:#7eb5ff;">uint32_t</span> fg, <span style="color:#7eb5ff;">uint32_t</span> bg);
+<span style="color:#7eb5ff;">void</span> <span style="color:#7dde9a;">gui_dc_draw_line</span>(gui_dc_t*, <span style="color:#7eb5ff;">int32_t</span> x0, <span style="color:#7eb5ff;">int32_t</span> y0, <span style="color:#7eb5ff;">int32_t</span> x1, <span style="color:#7eb5ff;">int32_t</span> y1, <span style="color:#7eb5ff;">uint32_t</span> color);
+<span style="color:#7eb5ff;">void</span> <span style="color:#7dde9a;">gui_dc_fill_circle</span>(gui_dc_t*, <span style="color:#7eb5ff;">int32_t</span> cx, <span style="color:#7eb5ff;">int32_t</span> cy, <span style="color:#7eb5ff;">int32_t</span> r, <span style="color:#7eb5ff;">uint32_t</span> color);
+
+<span style="color:#3060a0;">// Eclipse32 GUI palette</span>
+<span style="color:#58a6ff;">#define</span> GUI_COLOR_DESKTOP       <span style="color:#f0c060;">0x001A2332</span>  <span style="color:#3060a0;">// dark blue-grey</span>
+<span style="color:#58a6ff;">#define</span> GUI_COLOR_TITLEBAR_ACT  <span style="color:#f0c060;">0x0058A6FF</span>  <span style="color:#3060a0;">// eclipse blue</span>
+<span style="color:#58a6ff;">#define</span> GUI_COLOR_WIN_BG        <span style="color:#f0c060;">0x00F0F0F0</span>
+<span style="color:#58a6ff;">#define</span> GUI_COLOR_CLOSE_BTN     <span style="color:#f0c060;">0x00F85149</span>
+<span style="color:#58a6ff;">#define</span> GUI_COLOR_TASKBAR       <span style="color:#f0c060;">0x00141D26</span></pre>
+      </div>
+
+      <div id="src-shellc" class="src-panel" style="display:none;background:var(--ink);padding:1.5rem;font-family:var(--mono);font-size:12px;line-height:1.85;overflow-x:auto;max-height:420px;overflow-y:auto;color:#e0ddd6;">
+<pre style="margin:0;"><span style="color:#555;">// shell/shell.c — Eclipse Shell (esh) — excerpt
+// Built-in commands, line editor, 128-entry history, scripting engine</span>
+
+<span style="color:#555;">// Built-in command list (30+ commands)</span>
+<span style="color:#7eb5ff;">static const</span> builtin_t builtins[] = {
+    { <span style="color:#f0c060;">"ls"</span>,      cmd_ls      },   <span style="color:#555;">// directory listing</span>
+    { <span style="color:#f0c060;">"cat"</span>,     cmd_cat     },   <span style="color:#555;">// print file</span>
+    { <span style="color:#f0c060;">"mkdir"</span>,   cmd_mkdir   },
+    { <span style="color:#f0c060;">"rm"</span>,      cmd_rm      },
+    { <span style="color:#f0c060;">"cp"</span>,      cmd_cp      },
+    { <span style="color:#f0c060;">"mv"</span>,      cmd_mv      },
+    { <span style="color:#f0c060;">"echo"</span>,    cmd_echo    },
+    { <span style="color:#f0c060;">"uname"</span>,   cmd_uname   },
+    { <span style="color:#f0c060;">"uptime"</span>,  cmd_uptime  },
+    { <span style="color:#f0c060;">"free"</span>,    cmd_free    },
+    { <span style="color:#f0c060;">"history"</span>, cmd_history },   <span style="color:#555;">// 128-entry ring buffer</span>
+    { <span style="color:#f0c060;">"alias"</span>,   cmd_alias   },
+    { <span style="color:#f0c060;">"set"</span>,     cmd_set     },   <span style="color:#555;">// environment variables</span>
+    { <span style="color:#f0c060;">"export"</span>,  cmd_export  },
+    { <span style="color:#f0c060;">"source"</span>,  cmd_source  },   <span style="color:#555;">// .sh script execution</span>
+    { <span style="color:#f0c060;">"run"</span>,     cmd_run     },   <span style="color:#555;">// .E32 app launcher</span>
+    { <span style="color:#f0c060;">"install"</span>, cmd_install },   <span style="color:#555;">// .INS package installer</span>
+    { <span style="color:#f0c060;">"help"</span>,    cmd_help    },
+    { <span style="color:#f0c060;">"clear"</span>,   cmd_clear   },
+    { <span style="color:#f0c060;">"exit"</span>,    cmd_exit    },
+    { <span style="color:#7eb5ff;">NULL</span>,      <span style="color:#7eb5ff;">NULL</span>        }
+};
+
+<span style="color:#555;">// Line editor — handles arrow keys, Ctrl+A/E/K/L/C, Home/End/Delete</span>
+<span style="color:#7eb5ff;">static int</span> <span style="color:#7dde9a;">readline</span>(<span style="color:#7eb5ff;">char</span> *buf, <span style="color:#7eb5ff;">int</span> maxlen) {
+    <span style="color:#7eb5ff;">int</span> len = <span style="color:#f0c060;">0</span>, cur = <span style="color:#f0c060;">0</span>, hist_idx = hist_count;
+    <span style="color:#7eb5ff;">while</span> (<span style="color:#f0c060;">1</span>) {
+        key_event_t e = <span style="color:#7dde9a;">keyboard_wait_event</span>();
+        <span style="color:#7eb5ff;">if</span> (e.keycode == KEY_ENTER) <span style="color:#7eb5ff;">break</span>;
+        <span style="color:#7eb5ff;">if</span> (e.keycode == KEY_BACKSPACE &amp;&amp; cur &gt; <span style="color:#f0c060;">0</span>) {
+            <span style="color:#7dde9a;">memmove</span>(buf+cur-<span style="color:#f0c060;">1</span>, buf+cur, len-cur);
+            buf[--len] = <span style="color:#f0c060;">0</span>; --cur;
+            <span style="color:#555;">// redraw line...</span>
+        }
+        <span style="color:#555;">// ... arrow keys, Ctrl sequences, history navigation</span>
+    }
+    buf[len] = <span style="color:#f0c060;">'\0'</span>;
+    <span style="color:#7eb5ff;">return</span> len;
+}</pre>
+      </div>
+
+      <div id="src-syscall" class="src-panel" style="display:none;background:var(--ink);padding:1.5rem;font-family:var(--mono);font-size:12px;line-height:1.85;overflow-x:auto;max-height:420px;overflow-y:auto;color:#e0ddd6;">
+<pre style="margin:0;"><span style="color:#555;">// kernel/syscall/syscall.h — Eclipse32 syscall interface
+// Apps call INT 0x80 with EAX = syscall number</span>
+
+<span style="color:#555;">// Syscall numbers</span>
+<span style="color:#58a6ff;">#define</span> SYS_EXIT        <span style="color:#f0c060;">1</span>
+<span style="color:#58a6ff;">#define</span> SYS_WRITE       <span style="color:#f0c060;">2</span>   <span style="color:#555;">// write(fd, buf, len)</span>
+<span style="color:#58a6ff;">#define</span> SYS_READ        <span style="color:#f0c060;">3</span>   <span style="color:#555;">// read(fd=0=stdin, buf, len) — blocking</span>
+<span style="color:#58a6ff;">#define</span> SYS_OPEN        <span style="color:#f0c060;">4</span>
+<span style="color:#58a6ff;">#define</span> SYS_CLOSE       <span style="color:#f0c060;">5</span>
+<span style="color:#58a6ff;">#define</span> SYS_STAT        <span style="color:#f0c060;">6</span>
+<span style="color:#58a6ff;">#define</span> SYS_SEEK        <span style="color:#f0c060;">7</span>
+<span style="color:#58a6ff;">#define</span> SYS_MKDIR       <span style="color:#f0c060;">8</span>
+<span style="color:#58a6ff;">#define</span> SYS_REMOVE      <span style="color:#f0c060;">9</span>
+<span style="color:#58a6ff;">#define</span> SYS_READDIR     <span style="color:#f0c060;">10</span>
+<span style="color:#58a6ff;">#define</span> SYS_GETENV      <span style="color:#f0c060;">11</span>
+<span style="color:#58a6ff;">#define</span> SYS_SETENV      <span style="color:#f0c060;">12</span>
+<span style="color:#58a6ff;">#define</span> SYS_UPTIME      <span style="color:#f0c060;">13</span>
+<span style="color:#58a6ff;">#define</span> SYS_SPEAKER     <span style="color:#f0c060;">14</span>  <span style="color:#555;">// PC speaker via PIT</span>
+<span style="color:#58a6ff;">#define</span> SYS_SCHED_YIELD <span style="color:#f0c060;">20</span>
+
+<span style="color:#555;">// v1.1.2 — stdin fix: syscall gate now uses interrupt gate
+// (not trap gate) to keep keyboard IRQ unmasked during blocking reads</span>
+<span style="color:#555;">// Previously, apps hung waiting for stdin because the trap gate</span>
+<span style="color:#555;">// blocked IRQ1 (keyboard) while the syscall handler was active.</span>
+
+<span style="color:#7eb5ff;">void</span> <span style="color:#7dde9a;">syscall_init</span>(<span style="color:#7eb5ff;">void</span>);
+<span style="color:#7eb5ff;">void</span> <span style="color:#7dde9a;">syscall_handler</span>(<span style="color:#7eb5ff;">uint32_t</span> eax, <span style="color:#7eb5ff;">uint32_t</span> ebx,
+                     <span style="color:#7eb5ff;">uint32_t</span> ecx, <span style="color:#7eb5ff;">uint32_t</span> edx);</pre>
+      </div>
+
+      <div id="src-fat32h" class="src-panel" style="display:none;background:var(--ink);padding:1.5rem;font-family:var(--mono);font-size:12px;line-height:1.85;overflow-x:auto;max-height:420px;overflow-y:auto;color:#e0ddd6;">
+<pre style="margin:0;"><span style="color:#555;">// kernel/fs/fat32/fat32.h — Full FAT32 driver
+// Reads from ATA PIO. Supports open/read/write/seek/stat/readdir/create.</span>
+
+<span style="color:#58a6ff;">typedef struct</span> {
+    <span style="color:#7eb5ff;">uint8_t</span>  jump[<span style="color:#f0c060;">3</span>];
+    <span style="color:#7eb5ff;">char</span>     oem_name[<span style="color:#f0c060;">8</span>];
+    <span style="color:#7eb5ff;">uint16_t</span> bytes_per_sector;
+    <span style="color:#7eb5ff;">uint8_t</span>  sectors_per_cluster;
+    <span style="color:#7eb5ff;">uint16_t</span> reserved_sectors;
+    <span style="color:#7eb5ff;">uint8_t</span>  num_fats;
+    <span style="color:#7eb5ff;">uint32_t</span> sectors_per_fat;
+    <span style="color:#7eb5ff;">uint32_t</span> root_cluster;
+} <span style="color:#7dde9a;">__attribute__((packed)) fat32_bpb_t</span>;
+
+<span style="color:#7eb5ff;">typedef struct</span> {
+    <span style="color:#7eb5ff;">uint32_t</span> first_cluster;
+    <span style="color:#7eb5ff;">uint32_t</span> size;
+    <span style="color:#7eb5ff;">uint32_t</span> pos;         <span style="color:#555;">// seek position</span>
+    <span style="color:#7eb5ff;">bool</span>     is_dir;
+    <span style="color:#7eb5ff;">char</span>     name[<span style="color:#f0c060;">256</span>];
+} <span style="color:#7dde9a;">fat32_file_t</span>;
+
+<span style="color:#7eb5ff;">int</span>  <span style="color:#7dde9a;">fat32_mount</span>(<span style="color:#7eb5ff;">uint8_t</span> drive);
+<span style="color:#7eb5ff;">int</span>  <span style="color:#7dde9a;">fat32_open</span>(<span style="color:#7eb5ff;">const char</span> *path, fat32_file_t *f);
+<span style="color:#7eb5ff;">int</span>  <span style="color:#7dde9a;">fat32_read</span>(fat32_file_t *f, <span style="color:#7eb5ff;">void</span> *buf, <span style="color:#7eb5ff;">uint32_t</span> len);
+<span style="color:#7eb5ff;">int</span>  <span style="color:#7dde9a;">fat32_write</span>(fat32_file_t *f, <span style="color:#7eb5ff;">const void</span> *buf, <span style="color:#7eb5ff;">uint32_t</span> len);
+<span style="color:#7eb5ff;">int</span>  <span style="color:#7dde9a;">fat32_seek</span>(fat32_file_t *f, <span style="color:#7eb5ff;">uint32_t</span> pos);
+<span style="color:#7eb5ff;">int</span>  <span style="color:#7dde9a;">fat32_stat</span>(<span style="color:#7eb5ff;">const char</span> *path, fat32_file_t *f);
+<span style="color:#7eb5ff;">int</span>  <span style="color:#7dde9a;">fat32_readdir</span>(<span style="color:#7eb5ff;">const char</span> *path, fat32_dir_entry_t *entries, <span style="color:#7eb5ff;">int</span> max);
+<span style="color:#7eb5ff;">int</span>  <span style="color:#7dde9a;">fat32_create</span>(<span style="color:#7eb5ff;">const char</span> *path, <span style="color:#7eb5ff;">bool</span> is_dir);</pre>
+      </div>
+
+      <div id="src-e32" class="src-panel" style="display:none;background:var(--ink);padding:1.5rem;font-family:var(--mono);font-size:12px;line-height:1.85;overflow-x:auto;max-height:420px;overflow-y:auto;color:#e0ddd6;">
+<pre style="margin:0;"><span style="color:#555;">// apps/sdk/e32_syscall.h — .E32 app syscall interface
+// Apps link against this to call kernel services via INT 0x80</span>
+
+<span style="color:#58a6ff;">#define</span> E32_MAGIC   <span style="color:#f0c060;">0xEC320001</span>  <span style="color:#555;">// .E32 file magic</span>
+
+<span style="color:#555;">// Syscall wrappers callable from C apps</span>
+<span style="color:#7eb5ff;">static inline void</span> <span style="color:#7dde9a;">e32_exit</span>(<span style="color:#7eb5ff;">int</span> code) {
+    <span style="color:#7eb5ff;">asm volatile</span>(<span style="color:#f0c060;">"int $0x80"</span>
+        :: <span style="color:#f0c060;">"a"</span>(SYS_EXIT), <span style="color:#f0c060;">"b"</span>(code));
+}
+
+<span style="color:#7eb5ff;">static inline int</span> <span style="color:#7dde9a;">e32_write</span>(<span style="color:#7eb5ff;">int</span> fd, <span style="color:#7eb5ff;">const void</span> *buf, <span style="color:#7eb5ff;">size_t</span> n) {
+    <span style="color:#7eb5ff;">int</span> ret;
+    <span style="color:#7eb5ff;">asm volatile</span>(<span style="color:#f0c060;">"int $0x80"</span>
+        : <span style="color:#f0c060;">"=a"</span>(ret)
+        : <span style="color:#f0c060;">"a"</span>(SYS_WRITE), <span style="color:#f0c060;">"b"</span>(fd), <span style="color:#f0c060;">"c"</span>(buf), <span style="color:#f0c060;">"d"</span>(n));
+    <span style="color:#7eb5ff;">return</span> ret;
+}
+
+<span style="color:#7eb5ff;">static inline int</span> <span style="color:#7dde9a;">e32_read</span>(<span style="color:#7eb5ff;">int</span> fd, <span style="color:#7eb5ff;">void</span> *buf, <span style="color:#7eb5ff;">size_t</span> n) {
+    <span style="color:#7eb5ff;">int</span> ret;
+    <span style="color:#7eb5ff;">asm volatile</span>(<span style="color:#f0c060;">"int $0x80"</span>
+        : <span style="color:#f0c060;">"=a"</span>(ret)
+        : <span style="color:#f0c060;">"a"</span>(SYS_READ), <span style="color:#f0c060;">"b"</span>(fd), <span style="color:#f0c060;">"c"</span>(buf), <span style="color:#f0c060;">"d"</span>(n));
+    <span style="color:#7eb5ff;">return</span> ret;
+}
+
+<span style="color:#555;">// .E32 header (written by pack_e32.py)</span>
+<span style="color:#58a6ff;">typedef struct</span> {
+    <span style="color:#7eb5ff;">uint32_t</span> magic;      <span style="color:#555;">// 0xEC320001</span>
+    <span style="color:#7eb5ff;">uint32_t</span> load_addr;  <span style="color:#555;">// virtual load address</span>
+    <span style="color:#7eb5ff;">uint32_t</span> entry;      <span style="color:#555;">// entry point offset</span>
+    <span style="color:#7eb5ff;">uint32_t</span> size;       <span style="color:#555;">// total binary size</span>
+} <span style="color:#7dde9a;">__attribute__((packed)) e32_header_t</span>;</pre>
+      </div>
+
+    </div><!-- end source viewer -->
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>
+    <strong>Eclipse32</strong> — because every great OS starts from zero.<br>
+    <span style="margin-top:6px;display:inline-block;">MIT License · Copyright © 2026 Abhigyan · v1.1.2</span>
+  </p>
+</footer>
+
+<style>
+  .src-tab {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 10px 18px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .src-tab:hover { color: var(--ink); }
+  .src-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .smitem {
+    padding: 8px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: #a0c0e0;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .smitem:hover { background: #1a2a3a; }
+  .gui-icon:hover > div:first-child { opacity: 0.8; }
+</style>
+<script>
+  /* ── Scroll reveal ── */
+  const reveals = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 60);
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(el => io.observe(el));
+
+  /* ── Shell feature list ── */
+  document.querySelectorAll('.shell-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.shell-item').forEach(s => s.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+
+  /* ══════════════════════════════════════════
+     SOURCE CODE VIEWER
+  ══════════════════════════════════════════ */
+  function srcShow(tab, btn) {
+    document.querySelectorAll('.src-panel').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('.src-tab').forEach(b => b.classList.remove('active'));
+    const panel = document.getElementById('src-' + tab);
+    if (panel) panel.style.display = 'block';
+    if (btn) btn.classList.add('active');
+  }
+
+  /* ══════════════════════════════════════════
+     VGA SHELL SIMULATOR
+  ══════════════════════════════════════════ */
+  const FS = {
+    '/': ['boot/', 'kernel/', 'shell/', 'apps/', 'CHANGELOG.txt', 'README.md', 'TODO.txt'],
+    '/boot/': ['stage1.bin', 'stage2.bin'],
+    '/kernel/': ['kmain.c', 'kernel.h', 'linker.ld', 'mm/', 'fs/', 'arch/', 'drivers/'],
+    '/shell/': ['shell.c', 'shell.h', 'ins_pkg.c'],
+    '/apps/': ['HELLO.E32', 'HELLOC.E32', 'NUMECHO.E32', 'WRITER.E32'],
+  };
+  const FILES = {
+    'README.md': `Eclipse32 v1.1.2\n================\nA 32-bit OS built from scratch.\n\nBranches:\n  eclipse32_main          — VGA text mode, full shell\n  eclipse32_desktop_edition — GUI branch, EclipseGUI WM\n\nBuild: make && make run`,
+    'CHANGELOG.txt': `v1.1.2  2026-04-18\n  - stdin fix: syscall gate uses interrupt gate\n  - .E32 apps can now read from keyboard\n  - FAT32 write reliability improvements\n\nv1.1.1  2026-03-10\n  - Shell scripting: if/then/else/fi\n  - Pipe | and redirection > < >>\n  - 128-entry history ring buffer\n\nv1.0.0  2026-01-01\n  - Initial release`,
+    'TODO.txt': `[ ] GUI branch: stdin in terminal window\n[ ] Multitasking / scheduler\n[ ] Network stack (ne2000)\n[ ] ELF loader\n[x] FAT32 write (done v1.1.2)\n[x] stdin fix (done v1.1.2)`,
+  };
+
+  let simCwd = '/';
+  let simHistory = [];
+  let simHistIdx = -1;
+  let simEnv = { PATH: '/apps', USER: 'root', HOME: '/', SHELL: '/esh', VERSION: '1.1.2' };
+  let simAliases = {};
+  let simUptime = 0;
+
+  setInterval(() => simUptime++, 1000);
+
+  function simPrint(html) {
+    const out = document.getElementById('sim-output');
+    if (!out) return;
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    out.appendChild(div);
+    out.scrollTop = out.scrollHeight;
+  }
+
+  function simColor(text, cls) {
+    const map = { green:'#7dde9a', blue:'#7eb5ff', yellow:'#f0c060', red:'#ff7070', muted:'#555', white:'#e0ddd6', cyan:'#6ee7f7' };
+    return `<span style="color:${map[cls]||cls}">${text}</span>`;
+  }
+
+  function simResolvePath(arg) {
+    if (!arg || arg === '/') return '/';
+    if (arg.startsWith('/')) return arg.replace(/\/+$/, '') + '/';
+    if (arg === '..') {
+      const parts = simCwd.replace(/\/$/, '').split('/');
+      parts.pop();
+      return (parts.join('/') || '/') + '/';
+    }
+    if (arg === '.') return simCwd;
+    return (simCwd + arg).replace(/\/+/, '/').replace(/\/?$/, '/');
+  }
+
+  const BUILTINS = {
+    help() {
+      simPrint(simColor('Eclipse Shell (esh) — built-in commands:', 'cyan'));
+      const cmds = [
+        ['ls [path]','list directory'],['cat <file>','print file'],['cd <dir>','change directory'],
+        ['pwd','print working dir'],['echo <text>','print text'],['uname','system info'],
+        ['uptime','show uptime'],['free','memory usage'],['env','environment vars'],
+        ['set <k> <v>','set env var'],['alias <n> <v>','set alias'],['history','command history'],
+        ['clear','clear screen'],['date','current date'],['help','this help'],
+        ['run <app>','run .E32 app'],['ls -la','detailed listing'],
+      ];
+      cmds.forEach(([c,d]) => simPrint(`  ${simColor(c.padEnd(20),'blue')} ${simColor(d,'muted')}`));
+    },
+    ls(args) {
+      const path = args[0] ? simResolvePath(args[0]) : simCwd;
+      const entries = FS[path] || FS[path.replace(/\/?$/, '/')] ;
+      if (!entries) { simPrint(simColor(`ls: ${args[0]||path}: No such directory`, 'red')); return; }
+      const long = args.includes('-la') || args.includes('-l');
+      if (long) {
+        simPrint(simColor(`total ${entries.length}`, 'muted'));
+        entries.forEach(e => {
+          const isDir = e.endsWith('/');
+          const perm = isDir ? 'drwxr-xr-x' : '-rw-r--r--';
+          const size = isDir ? '   0' : '1024';
+          simPrint(`${simColor(perm,'muted')} 1 root root ${size} Apr 18  ${isDir ? simColor(e,'blue') : simColor(e,'green')}`);
+        });
+      } else {
+        const out = entries.map(e => e.endsWith('/') ? simColor(e,'blue') : simColor(e,'green')).join('  ');
+        simPrint(out);
+      }
+    },
+    cat(args) {
+      if (!args[0]) { simPrint(simColor('cat: missing operand', 'red')); return; }
+      const name = args[0].replace(/^.*\//, '');
+      const content = FILES[name] || FILES[args[0]];
+      if (content) {
+        content.split('\n').forEach(l => simPrint(simColor(l || '&nbsp;', 'white')));
+      } else {
+        simPrint(simColor(`cat: ${args[0]}: No such file or directory`, 'red'));
+      }
+    },
+    cd(args) {
+      const target = simResolvePath(args[0] || '/');
+      if (FS[target] || target === '/') {
+        simCwd = target === '/' ? '/' : target;
+        document.getElementById('sim-prompt').textContent = `root@eclipse32:${simCwd === '/' ? '/' : simCwd.replace(/\/$/, '')} $`;
+      } else {
+        simPrint(simColor(`cd: ${args[0]}: No such directory`, 'red'));
+      }
+    },
+    pwd() { simPrint(simColor(simCwd, 'white')); },
+    echo(args) {
+      const text = args.map(a => a.startsWith('$') ? (simEnv[a.slice(1)] || '') : a).join(' ');
+      simPrint(simColor(text || '&nbsp;', 'white'));
+    },
+    uname(args) {
+      if (args.includes('-a')) simPrint(simColor('Eclipse32 1.1.2 x86 (i686) bare-metal esh-1.1.2', 'yellow'));
+      else simPrint(simColor('Eclipse32', 'yellow'));
+    },
+    uptime() {
+      const h = Math.floor(simUptime/3600), m = Math.floor((simUptime%3600)/60), s = simUptime%60;
+      simPrint(simColor(`up ${h}h ${m}m ${s}s  —  load: 0.00 0.00 0.00`, 'white'));
+    },
+    free() {
+      simPrint(simColor('             total       used       free', 'muted'));
+      simPrint(`${simColor('Mem:','blue')}       ${simColor('32768K','white')}     ${simColor(' 4096K','white')}     ${simColor('28672K','green')}`);
+      simPrint(`${simColor('Swap:','blue')}          ${simColor('0K','white')}         ${simColor('0K','white')}         ${simColor('0K','muted')}`);
+    },
+    env() {
+      Object.entries(simEnv).forEach(([k,v]) => simPrint(`${simColor(k,'blue')}=${simColor(v,'green')}`));
+    },
+    set(args) {
+      if (args.length < 2) { simPrint(simColor('Usage: set KEY VALUE', 'red')); return; }
+      simEnv[args[0]] = args.slice(1).join(' ');
+      simPrint(simColor(`${args[0]}=${simEnv[args[0]]}`, 'green'));
+    },
+    export(args) { BUILTINS.set(args); },
+    alias(args) {
+      if (args.length < 2) {
+        Object.entries(simAliases).forEach(([k,v]) => simPrint(`alias ${simColor(k,'blue')}='${simColor(v,'yellow')}'`));
+        return;
+      }
+      simAliases[args[0]] = args.slice(1).join(' ');
+      simPrint(simColor(`alias ${args[0]}='${simAliases[args[0]]}'`, 'green'));
+    },
+    history() {
+      simHistory.forEach((h,i) => simPrint(`  ${simColor(String(i+1).padStart(3),'muted')}  ${simColor(h,'white')}`));
+    },
+    clear() { document.getElementById('sim-output').innerHTML = ''; },
+    date() { simPrint(simColor(new Date().toString(), 'yellow')); },
+    run(args) {
+      if (!args[0]) { simPrint(simColor('Usage: run <APP.E32>', 'red')); return; }
+      const app = args[0].toUpperCase().replace(/\.E32$/,'') + '.E32';
+      if (['HELLO.E32','HELLOC.E32'].includes(app)) {
+        simPrint(simColor('Hello, World!', 'green'));
+      } else if (app === 'NUMECHO.E32') {
+        simPrint(simColor('Enter a number: ', 'white'));
+        simPrint(simColor('[stdin in .E32 apps fixed in v1.1.2 — works in real OS]', 'muted'));
+      } else if (app === 'WRITER.E32') {
+        simPrint(simColor('Eclipse Writer v1.0 — text editor', 'cyan'));
+        simPrint(simColor('[Full stdin/stdout in real OS via SYS_READ/SYS_WRITE]', 'muted'));
+      } else {
+        simPrint(simColor(`run: ${args[0]}: not found in /apps`, 'red'));
+      }
+    },
+    install(args) {
+      if (!args[0]) { simPrint(simColor('Usage: install <pkg.INS>', 'red')); return; }
+      simPrint(simColor(`Installing ${args[0]}...`, 'white'));
+      simPrint(simColor('Extracting... OK', 'green'));
+      simPrint(simColor('Running install.cfg... OK', 'green'));
+      simPrint(simColor(`Package installed successfully.`, 'green'));
+    },
+    mkdir(args) {
+      if (!args[0]) { simPrint(simColor('mkdir: missing operand', 'red')); return; }
+      simPrint(simColor(`mkdir: ${args[0]}/  [simulated]`, 'muted'));
+    },
+    rm(args) {
+      if (!args[0]) { simPrint(simColor('rm: missing operand', 'red')); return; }
+      simPrint(simColor(`rm: ${args[0]} removed  [simulated]`, 'muted'));
+    },
+    cp(args) {
+      if (args.length < 2) { simPrint(simColor('Usage: cp <src> <dst>', 'red')); return; }
+      simPrint(simColor(`cp: ${args[0]} → ${args[1]}  [simulated]`, 'muted'));
+    },
+    mv(args) {
+      if (args.length < 2) { simPrint(simColor('Usage: mv <src> <dst>', 'red')); return; }
+      simPrint(simColor(`mv: ${args[0]} → ${args[1]}  [simulated]`, 'muted'));
+    },
+  };
+
+  function simRun(raw) {
+    const line = raw.trim();
+    if (!line) return;
+    simHistory.push(line);
+    simHistIdx = simHistory.length;
+
+    // Show prompt + command
+    const promptEl = document.getElementById('sim-prompt');
+    simPrint(`${simColor(promptEl.textContent, 'blue')} ${simColor(line, 'white')}`);
+
+    // Resolve alias
+    const tokens = line.split(/\s+/);
+    const cmd = simAliases[tokens[0]] ? simAliases[tokens[0]] + ' ' + tokens.slice(1).join(' ') : line;
+    const parts = cmd.split(/\s+/);
+    const name = parts[0];
+    const args = parts.slice(1);
+
+    if (BUILTINS[name]) {
+      BUILTINS[name](args);
+    } else {
+      simPrint(simColor(`esh: command not found: ${name}  (try: help)`, 'red'));
+    }
+  }
+
+  function simInit() {
+    const out = document.getElementById('sim-output');
+    const inp = document.getElementById('sim-input');
+    if (!out || !inp) return;
+
+    // Boot sequence
+    simPrint(simColor('[boot] Stage 1 → Stage 2 → Kernel...', 'muted'));
+    setTimeout(() => simPrint(`${simColor('✓','green')} ${simColor('VGA text mode 80×25 ready','white')}`), 200);
+    setTimeout(() => simPrint(`${simColor('✓','green')} ${simColor('FAT32 mounted at /','white')}`), 400);
+    setTimeout(() => simPrint(`${simColor('✓','green')} ${simColor('Eclipse Shell (esh) v1.1.2 starting...','white')}`), 600);
+    setTimeout(() => simPrint('&nbsp;'), 800);
+    setTimeout(() => simPrint(simColor('Type "help" to see available commands.', 'muted')), 900);
+
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const val = inp.value;
+        inp.value = '';
+        simRun(val);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (simHistIdx > 0) { simHistIdx--; inp.value = simHistory[simHistIdx] || ''; }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (simHistIdx < simHistory.length - 1) { simHistIdx++; inp.value = simHistory[simHistIdx] || ''; }
+        else { simHistIdx = simHistory.length; inp.value = ''; }
+      }
+    });
+
+    // Focus on click anywhere in terminal
+    document.getElementById('sim-vga').addEventListener('click', () => inp.focus());
+  }
+
+  /* ══════════════════════════════════════════
+     GUI SIMULATOR (Desktop Edition)
+  ══════════════════════════════════════════ */
+  let guiWindows = {};
+  let guiZTop = 10;
+  let startMenuOpen = false;
+
+  function guiClock() {
+    const el = document.getElementById('gui-clock');
+    if (!el) return;
+    const now = new Date();
+    el.textContent = now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    setTimeout(guiClock, 10000);
+  }
+
+  function guiToggleStartMenu() {
+    startMenuOpen = !startMenuOpen;
+    const sm = document.getElementById('start-menu');
+    if (sm) sm.style.display = startMenuOpen ? 'block' : 'none';
+  }
+
+  function guiCloseWindow(id) {
+    const w = document.getElementById('gwin-' + id);
+    if (w) w.remove();
+    delete guiWindows[id];
+    const tb = document.getElementById('gtask-' + id);
+    if (tb) tb.remove();
+  }
+
+  function guiFocusWindow(id) {
+    guiZTop++;
+    const w = document.getElementById('gwin-' + id);
+    if (w) w.style.zIndex = guiZTop;
+  }
+
+  function guiMakeDraggable(win, titlebar, id) {
+    let ox=0, oy=0, dragging=false;
+    titlebar.addEventListener('mousedown', e => {
+      if (e.target.classList.contains('gui-close-btn')) return;
+      dragging = true;
+      ox = e.clientX - win.offsetLeft;
+      oy = e.clientY - win.offsetTop;
+      guiFocusWindow(id);
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const desk = document.getElementById('gui-desktop');
+      const dr = desk.getBoundingClientRect();
+      let nx = e.clientX - ox;
+      let ny = e.clientY - oy;
+      nx = Math.max(0, Math.min(nx, dr.width - win.offsetWidth));
+      ny = Math.max(0, Math.min(ny, dr.height - 36 - 28));
+      win.style.left = nx + 'px';
+      win.style.top  = ny + 'px';
+    });
+    document.addEventListener('mouseup', () => dragging = false);
+  }
+
+  function guiCreateWindow(id, title, x, y, w, h, contentHTML) {
+    if (document.getElementById('gwin-' + id)) {
+      guiFocusWindow(id); return;
+    }
+    guiZTop++;
+    const win = document.createElement('div');
+    win.id = 'gwin-' + id;
+    win.style.cssText = `position:absolute;left:${x}px;top:${y}px;width:${w}px;min-height:${h}px;
+      background:#f0f4f8;border:1px solid #1a3a5c;border-radius:6px;overflow:hidden;
+      box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:${guiZTop};`;
+
+    win.innerHTML = `
+      <div class="gui-titlebar" style="background:#0058a6;padding:0 10px;height:28px;display:flex;align-items:center;gap:8px;cursor:move;user-select:none;">
+        <span style="font-family:monospace;font-size:12px;color:#fff;font-weight:600;flex:1;">${title}</span>
+        <div class="gui-close-btn" onclick="guiCloseWindow('${id}')"
+          style="width:16px;height:16px;background:#f85149;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:bold;">✕</div>
+      </div>
+      <div style="padding:14px;font-family:monospace;font-size:12px;line-height:1.7;color:#1c1b18;max-height:${h-28}px;overflow-y:auto;">${contentHTML}</div>`;
+
+    document.getElementById('gui-windows').appendChild(win);
+    guiMakeDraggable(win, win.querySelector('.gui-titlebar'), id);
+
+    // Taskbar button
+    const tbtn = document.createElement('button');
+    tbtn.id = 'gtask-' + id;
+    tbtn.textContent = title;
+    tbtn.onclick = () => guiFocusWindow(id);
+    tbtn.style.cssText = 'font-family:monospace;font-size:11px;background:#243040;color:#a0c8f0;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    document.getElementById('taskbar-items').appendChild(tbtn);
+    guiWindows[id] = true;
+  }
+
+  function guiLaunchApp(app) {
+    if (startMenuOpen) { startMenuOpen=false; const sm=document.getElementById('start-menu'); if(sm) sm.style.display='none'; }
+    const apps = {
+      filemanager: ['filemanager', '📁 File Manager', 80, 40, 360, 280,
+        `<div style="margin-bottom:8px;color:#0058a6;font-weight:bold;">/ (root)</div>
+         ${['boot/','kernel/','shell/','apps/','CHANGELOG.txt','README.md','TODO.txt'].map(f =>
+           f.endsWith('/') ?
+           `<div style="color:#0058a6;padding:2px 0;">📁 ${f}</div>` :
+           `<div style="color:#1c1b18;padding:2px 0;">📄 ${f}</div>`
+         ).join('')}`],
+      terminal: ['terminal', '💻 Terminal', 120, 60, 400, 260,
+        `<div style="background:#1c1b18;padding:12px;border-radius:4px;color:#7dde9a;min-height:180px;">
+          <div style="color:#555;">// Eclipse Shell — Desktop Edition</div>
+          <div style="color:#7eb5ff;margin-top:8px;">root@eclipse32:/ $</div>
+          <div style="color:#f0c060;font-size:11px;margin-top:6px;">[stdin support pending — see todo.txt]</div>
+          <div style="color:#555;font-size:11px;margin-top:4px;">Use Eclipse32 Main branch for full esh</div>
+        </div>`],
+      paint: ['paint', '🎨 Paint', 160, 50, 380, 300,
+        `<canvas id="paint-canvas" width="346" height="220"
+          style="background:#fff;border:1px solid #ccc;cursor:crosshair;display:block;"></canvas>
+         <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
+           ${['#000000','#ff0000','#00aa00','#0058a6','#ff8800','#aa00aa','#ffffff'].map(c =>
+             `<div onclick="paintColor='${c}'" style="width:18px;height:18px;background:${c};border:2px solid #888;border-radius:3px;cursor:pointer;"></div>`
+           ).join('')}
+           <span style="font-size:11px;color:#888;margin-left:4px;line-height:18px;">click to pick · draw on canvas</span>
+         </div>`,
+        () => {
+          const cv = document.getElementById('paint-canvas');
+          if (!cv) return;
+          const ctx = cv.getContext('2d');
+          window.paintColor = '#000000';
+          let drawing = false;
+          ctx.fillStyle = '#fff'; ctx.fillRect(0,0,cv.width,cv.height);
+          cv.addEventListener('mousedown', e => { drawing=true; const r=cv.getBoundingClientRect(); ctx.beginPath(); ctx.moveTo(e.clientX-r.left, e.clientY-r.top); });
+          cv.addEventListener('mousemove', e => { if(!drawing) return; const r=cv.getBoundingClientRect(); ctx.lineTo(e.clientX-r.left, e.clientY-r.top); ctx.strokeStyle=window.paintColor; ctx.lineWidth=2; ctx.lineCap='round'; ctx.stroke(); });
+          cv.addEventListener('mouseup', () => drawing=false);
+          cv.addEventListener('mouseleave', () => drawing=false);
+        }],
+      clock: ['clock', '🕐 Clock', 200, 80, 220, 120,
+        `<div id="gui-clock-big" style="font-size:2rem;font-weight:bold;text-align:center;color:#0058a6;padding:10px;"></div>
+         <div style="text-align:center;color:#888;font-size:11px;">${new Date().toDateString()}</div>`],
+      about: ['about', 'ℹ️ About Eclipse32', 140, 70, 340, 260,
+        `<div style="text-align:center;padding:10px 0;">
+           <div style="font-size:2rem;margin-bottom:8px;">⚡</div>
+           <div style="font-size:16px;font-weight:bold;color:#0058a6;">Eclipse32</div>
+           <div style="font-size:12px;color:#888;">Desktop Edition</div>
+           <div style="font-size:11px;color:#555;margin:12px 0 4px;">Version 1.1.2 · MIT License</div>
+           <div style="font-size:11px;color:#555;">EclipseGUI WM · VBE 1024×768×32</div>
+           <div style="font-size:11px;color:#555;margin-top:4px;">Copyright © 2026 Abhigyan</div>
+           <hr style="border:none;border-top:1px solid #ddd;margin:12px 0;">
+           <div style="font-size:11px;color:#888;">Built from scratch — C + NASM<br>Bootloader · Kernel · FS · WM</div>
+         </div>`],
+    };
+    const cfg = apps[app];
+    if (!cfg) return;
+    const [aid, atitle, ax, ay, aw, ah, ahtml, acb] = cfg;
+    guiCreateWindow(aid, atitle, ax, ay, aw, ah, ahtml);
+    if (acb) setTimeout(acb, 50);
+
+    // Clock tick for clock window
+    if (app === 'clock') {
+      const tick = () => {
+        const el = document.getElementById('gui-clock-big');
+        if (el) { el.textContent = new Date().toLocaleTimeString(); setTimeout(tick, 1000); }
+      };
+      setTimeout(tick, 100);
+    }
+  }
+
+  /* ══════════════════════════════════════════
+     MODE SWITCHER
+  ══════════════════════════════════════════ */
+  function simSetMode(mode) {
+    const vga = document.getElementById('sim-vga');
+    const gui = document.getElementById('sim-gui');
+    const btnVga = document.getElementById('sim-btn-vga');
+    const btnGui = document.getElementById('sim-btn-gui');
+    if (mode === 'vga') {
+      vga.style.display = 'block';
+      gui.style.display = 'none';
+      btnVga.style.background = 'var(--ink)'; btnVga.style.color = '#fff'; btnVga.style.borderColor = 'var(--ink)';
+      btnGui.style.background = 'transparent'; btnGui.style.color = 'var(--ink2)'; btnGui.style.borderColor = 'var(--stone)';
+    } else {
+      vga.style.display = 'none';
+      gui.style.display = 'block';
+      btnGui.style.background = '#0058a6'; btnGui.style.color = '#fff'; btnGui.style.borderColor = '#0058a6';
+      btnVga.style.background = 'transparent'; btnVga.style.color = 'var(--ink2)'; btnVga.style.borderColor = 'var(--stone)';
+      guiClock();
+    }
+  }
+
+  /* ── Init ── */
+  window.addEventListener('DOMContentLoaded', () => {
+    simInit();
+    guiClock();
+  });
+</script>
+</body>
+</html>
